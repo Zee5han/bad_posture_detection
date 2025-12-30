@@ -1,34 +1,24 @@
 import mediapipe as mp
+import cv2
 
 
 class PostureDetector:
     def __init__(self, threshold=0.03):
-        """
-        threshold: normalized Y-axis distance in MediaPipe space
-        """
         self.threshold = threshold
 
         self.mp_pose = mp.solutions.pose
+        self.mp_draw = mp.solutions.drawing_utils
+
         self.pose = self.mp_pose.Pose(
             static_image_mode=False,
             model_complexity=1,
             smooth_landmarks=True,
-            enable_segmentation=False,
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5
         )
 
-    def analyze(self, frame):
-        """
-        Analyze posture from a frame.
-        Returns:
-            dict: {
-                "bad_posture": bool,
-                "ear_y": float,
-                "shoulder_y": float
-            }
-        """
-        rgb = frame[:, :, ::-1]
+    def analyze(self, frame, draw=False):
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         results = self.pose.process(rgb)
 
         if not results.pose_landmarks:
@@ -49,6 +39,13 @@ class PostureDetector:
         shoulder_y = (left_shoulder.y + right_shoulder.y) / 2
 
         bad_posture = ear_y > (shoulder_y + self.threshold)
+
+        if draw:
+            self.mp_draw.draw_landmarks(
+                frame,
+                results.pose_landmarks,
+                self.mp_pose.POSE_CONNECTIONS
+            )
 
         return {
             "bad_posture": bad_posture,
