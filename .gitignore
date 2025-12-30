@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+.env
+
+# Models (large files, download separately)
+models/*.pt
+
+# Output files
+results/*
