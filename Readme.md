@@ -21,7 +21,7 @@ Detects **sustained yawning** as a reliable fatigue signal and shows a beautiful
 
 ### Installation & Run
 ```bash
-git clone https://github.com/yourusername/iposture.git
+git clone https://github.com/Zee5han/bad_posture_detection.git
 cd posture_detection
 pip install -r requirements.txt
 python app/main.py

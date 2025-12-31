@@ -21,7 +21,7 @@ def main():
     rules = RuleEngine(yawn_duration_threshold=6.0)
 
     camera.start()
-    print("[INFO] iPosture Fatigue Detector Running")
+    print("[INFO] Fatigue Detector Running")
     print("→ Sustained yawn (≥6s) triggers full-screen gentle reminder")
     print("Press ESC to quit")
 
@@ -51,7 +51,7 @@ def main():
             if decision["trigger_alert"]:
                 overlay.show_alert()
 
-            cv2.imshow("iPosture - Debug View (Full Face Mesh)", frame)
+            cv2.imshow("Debug View (Full Face Mesh)", frame)
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break
