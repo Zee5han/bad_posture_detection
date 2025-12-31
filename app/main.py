@@ -1,23 +1,29 @@
+# main.py
 import cv2
-import time
+import sys
+from PyQt6.QtWidgets import QApplication
 
 from vision.camera import Camera
 from vision.posture_detector import PostureDetector
 from vision.mouth_detector import MouthDetector
-from logic.timer import ViolationTimer
 from logic.rule_engine import RuleEngine
+from app.overlay import FatigueOverlay
 
 
 def main():
-    camera = Camera(camera_index=0)
-    posture_detector = PostureDetector()
-    mouth_detector = MouthDetector()
+    app = QApplication(sys.argv)
+    overlay = FatigueOverlay(display_seconds=15)
 
-    timer = ViolationTimer()
-    rules = RuleEngine(time_threshold=10)
+    camera = Camera(camera_index=0)
+    posture_detector = PostureDetector(threshold=0.03)
+    mouth_detector = MouthDetector(distance_threshold=0.025)  # Tune this!
+
+    rules = RuleEngine(yawn_duration_threshold=6.0)
 
     camera.start()
-    print("[INFO] Running Phase-1 Visual Test")
+    print("[INFO] iPosture Fatigue Detector Running")
+    print("→ Sustained yawn (≥6s) triggers full-screen gentle reminder")
+    print("Press ESC to quit")
 
     try:
         while True:
@@ -28,45 +34,28 @@ def main():
             posture = posture_detector.analyze(frame, draw=True)
             mouth = mouth_detector.analyze(frame, draw=True)
 
-            posture_bad = posture["bad_posture"]
-            mouth_open = mouth["mouth_open"]
+            decision = rules.evaluate(mouth_open=mouth["mouth_open"])
 
-            violation_active = posture_bad or mouth_open
-            violation_time = timer.update(violation_active)
-
-            decision = rules.evaluate(
-                posture_bad,
-                mouth_open,
-                violation_time
-            )
-
-            # ---- UI TEXT ----
-            cv2.putText(frame, f"Posture: {'BAD' if posture_bad else 'GOOD'}",
+            # Debug info
+            cv2.putText(frame, f"Posture: {'BAD' if posture['bad_posture'] else 'GOOD'}",
                         (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
-                        (0, 0, 255) if posture_bad else (0, 255, 0), 2)
+                        (0, 0, 255) if posture['bad_posture'] else (0, 255, 0), 2)
 
-            cv2.putText(frame, f"Mouth: {'OPEN' if mouth_open else 'CLOSED'}",
-                        (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
-                        (0, 0, 255) if mouth_open else (0, 255, 0), 2)
+            cv2.putText(frame, f"Yawn Duration: {decision['yawn_duration']:.1f}s",
+                        (20, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
 
-            cv2.putText(frame, f"Timer: {violation_time:.1f}s",
-                        (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.8,
-                        (255, 255, 0), 2)
+            if decision["sustained_yawn"]:
+                cv2.putText(frame, "SUSTAINED YAWN DETECTED!", (20, 120),
+                            cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 255), 3)
 
             if decision["trigger_alert"]:
-                cv2.putText(frame, "⚠ BAD POSTURE ALERT ⚠",
-                            (20, 170), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                            (0, 0, 255), 3)
+                overlay.show_alert()
 
-            cv2.imshow("Posture - Phase 1 Debug", frame)
+            cv2.imshow("iPosture - Debug View (Full Face Mesh)", frame)
 
             if cv2.waitKey(1) & 0xFF == 27:
                 break
 
-    finally:
-        camera.stop()
-        cv2.destroyAllWindows()
+            app.processEvents()
 
-
-if __name__ == "__main__":
-    main()
+    finally:l

@@ -1,19 +1,15 @@
+# logic/rule_engine.py
+from logic.timer import FatigueTimer
+
+
 class RuleEngine:
-    def __init__(self, time_threshold=10):
-        self.time_threshold = time_threshold
+    def __init__(self, yawn_duration_threshold=6.0):
+        self.timer = FatigueTimer(yawn_duration_threshold=yawn_duration_threshold)
 
-    def evaluate(self, posture_bad, mouth_open, violation_time):
-        """
-        Returns:
-            dict: {
-                "violation_active": bool,
-                "trigger_alert": bool
-            }
-        """
-        violation_active = posture_bad or mouth_open
-        trigger_alert = violation_time >= self.time_threshold
-
+    def evaluate(self, mouth_open):
+        result = self.timer.update(mouth_open)
         return {
-            "violation_active": violation_active,
-            "trigger_alert": trigger_alert
+            "trigger_alert": result["trigger_alert"],
+            "sustained_yawn": result["sustained_yawn"],
+            "yawn_duration": result["yawn_duration"]
         }

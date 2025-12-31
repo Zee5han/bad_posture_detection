@@ -1,21 +1,28 @@
+# logic/timer.py
 import time
 
 
-class ViolationTimer:
-    def __init__(self):
-        self.start_time = None
+class FatigueTimer:
+    def __init__(self, yawn_duration_threshold=6.0):
+        self.yawn_duration_threshold = yawn_duration_threshold
+        self.yawn_start_time = None
 
-    def update(self, violation_active):
-        """
-        Returns elapsed violation time in seconds
-        """
-        if violation_active:
-            if self.start_time is None:
-                self.start_time = time.time()
-            return time.time() - self.start_time
+    def update(self, mouth_open):
+        current_time = time.time()
+
+        if mouth_open:
+            if self.yawn_start_time is None:
+                self.yawn_start_time = current_time
+            yawn_duration = current_time - self.yawn_start_time
         else:
-            self.reset()
-            return 0.0
+            self.yawn_start_time = None
+            yawn_duration = 0.0
 
-    def reset(self):
-        self.start_time = None
+        sustained_yawn = yawn_duration >= self.yawn_duration_threshold
+        trigger_alert = sustained_yawn  # Alert every time condition is met
+
+        return {
+            "sustained_yawn": sustained_yawn,
+            "yawn_duration": round(yawn_duration, 1),
+            "trigger_alert": trigger_alert
+        }
